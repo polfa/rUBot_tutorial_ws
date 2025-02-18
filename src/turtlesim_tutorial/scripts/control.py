@@ -22,7 +22,7 @@ def move_turtle(v,w):
 if __name__ == '__main__':
     try:
         v= 2
-        w= 1
+        w= -1
         move_turtle(v,w)
     except rospy.ROSInterruptException:
         pass
