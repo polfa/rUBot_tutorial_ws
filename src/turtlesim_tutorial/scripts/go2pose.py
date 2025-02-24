@@ -10,7 +10,7 @@ class TurtleBot:
     def __init__(self):
         # Creates a node with name 'move_turtle' and make sure it is a
         # unique node (using anonymous=True).
-        rospy.init_node('go_point', anonymous=True)
+        rospy.init_node('move_turtle', anonymous=True)
 
         # Publisher which will publish to the topic '/turtle1/cmd_vel'.
         self.velocity_publisher = rospy.Publisher('/turtle1/cmd_vel',
@@ -25,6 +25,7 @@ class TurtleBot:
         self.goal_pose = Pose()
         self.goal_pose.x = rospy.get_param("~x")
         self.goal_pose.y = rospy.get_param("~y")
+        self.goal_pose.theta = rospy.get_param("~z")
         self.distance_tolerance = rospy.get_param("~tol")
         self.rate = rospy.Rate(10)
 
@@ -34,6 +35,7 @@ class TurtleBot:
         self.pose = data
         self.pose.x = round(self.pose.x, 4)
         self.pose.y = round(self.pose.y, 4)
+        self.pose.theta = round(self.pose.theta, 4)
 
     def euclidean_distance(self, goal_pose):
         """Euclidean distance between current pose and the goal."""
@@ -51,6 +53,27 @@ class TurtleBot:
     def angular_vel(self, goal_pose, constant=6):
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
         return constant * (self.steering_angle(goal_pose) - self.pose.theta)
+    
+    def rotate_pose(self, vel_msg):
+        while not (self.goal_pose.theta - 0.1 < self.pose.theta and self.goal_pose.theta + 0.1 > self.pose.theta):
+            rospy.loginfo(f"Z: {self.pose.theta}")
+            # Linear velocity in the x-axis.
+            vel_msg.linear.x = 0
+            vel_msg.linear.y = 0
+            vel_msg.linear.z = 0
+
+            # Angular velocity in the z-axis.
+            vel_msg.angular.x = 0
+            vel_msg.angular.y = 0
+            vel_msg.angular.z = 1
+
+            # Publishing our vel_msg
+            self.velocity_publisher.publish(vel_msg)
+
+            # Publish at the desired rate.
+            self.rate.sleep()
+
+
 
     def move2goal(self):
         """Moves the turtle to the goal."""
@@ -89,6 +112,7 @@ class TurtleBot:
         # Stopping our robot after the movement is over.
         vel_msg.linear.x = 0
         vel_msg.angular.z = 0
+        self.rotate_pose(vel_msg)
         self.velocity_publisher.publish(vel_msg)
         rospy.loginfo("Robot Reached destination")
         rospy.logwarn("Stopping robot")
